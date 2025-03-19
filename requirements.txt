@@ -8,6 +8,7 @@ coloredlogs==15.0.1
 dateutils==0.6.12
 Flask==3.0.3
 flatbuffers==24.3.25
+gunicorn==23.0.0
 humanfriendly==10.0
 idna==3.7
 imageio==2.35.0
