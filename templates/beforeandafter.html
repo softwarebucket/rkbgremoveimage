@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background Removal - Before & After Slider</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #background-options img {
+            width: 100px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        #result-container {
+            position: relative;
+            display: inline-block;
+            width: 500px; /* Adjust width as needed */
+            max-width: 100%;
+            margin: 20px auto;
+        }
+        #before-image, #result-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        #after-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%; /* Start with half revealed */
+            overflow: hidden;
+        }
+        #slider {
+            position: absolute;
+            top: 0;
+            left: 50%; /* Align the slider in the middle */
+            width: 5px;
+            height: 100%;
+            background-color: #fff;
+            cursor: ew-resize;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-left: 2px solid black; /* Line with arrow */
+            border-right: 2px solid black; /* Line with arrow */
+        }
+        #slider:before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 10px 7px 10px 0;
+            border-color: transparent black transparent transparent;
+            left: -7px;
+        }
+        #slider:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 10px 0 10px 7px;
+            border-color: transparent transparent transparent black;
+            right: -7px;
+        }
+        #download-link {
+            display: none;
+            margin-top: 10px;
+        }
+        #color-picker {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload Image to Remove Background</h1>
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" id="image-upload" name="file" accept="image/*" required>
+        <button type="submit">Remove Background</button>
+    </form>
+    
+    <div id="result-container">
+        <!-- Before image -->
+        <img id="before-image" src="" alt="Original Image">
+        
+        <!-- Container for after image and slider -->
+        <div id="after-container">
+            <img id="result-image" src="" alt="Processed Image">
+        </div>
+        
+        <!-- Slider -->
+        <div id="slider"></div>
+    </div>
+    <br>
+
+    <h2>Select Background</h2>
+    <div id="background-options">
+        <img src="/static/bg1.png" alt="Background 1" onclick="applyBackground('/static/bg1.png')">
+        <img src="/static/bg2.jpg" alt="Background 2" onclick="applyBackground('/static/bg2.jpg')">
+        <img src="/static/bg3.jpg" alt="Background 3" onclick="applyBackground('/static/bg3.jpg')">
+        <!-- Add more background options as needed -->
+    </div>
+    
+    <h2>Or Pick a Background Color</h2>
+    <input type="color" id="color-picker" value="#ffffff" onchange="applyBackgroundColor(this.value)">
+
+    <br>
+    <a id="download-link" href="#" download="processed_image.png">
+        <button>Download Image</button>
+    </a>
+    
+    <script>
+        document.getElementById('upload-form').onsubmit = function (event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('image-upload');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            fetch('/remove-bg', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const beforeImageUrl = URL.createObjectURL(fileInput.files[0]);
+                const afterImageUrl = URL.createObjectURL(blob);
+
+                const beforeImage = document.getElementById('before-image');
+                const afterImage = document.getElementById('result-image');
+
+                beforeImage.src = beforeImageUrl;
+                afterImage.src = afterImageUrl;
+
+                // Show the download link after the image is processed
+                const downloadLink = document.getElementById('download-link');
+                downloadLink.href = afterImageUrl;
+                downloadLink.style.display = 'inline-block';
+
+                // Set up the slider functionality
+                setupSlider();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('There was an error processing your image.');
+            });
+        };
+
+        function setupSlider() {
+            const slider = document.getElementById('slider');
+            const afterContainer = document.getElementById('after-container');
+            const container = document.getElementById('result-container');
+
+            let isDragging = false;
+
+            slider.onmousedown = function(event) {
+                isDragging = true;
+            };
+
+            document.onmouseup = function() {
+                isDragging = false;
+            };
+
+            document.onmousemove = function(event) {
+                if (!isDragging) return;
+
+                const containerRect = container.getBoundingClientRect();
+                let xPos = event.clientX - containerRect.left;
+
+                if (xPos < 0) xPos = 0;
+                if (xPos > containerRect.width) xPos = containerRect.width;
+
+                afterContainer.style.width = xPos + 'px';
+                slider.style.left = xPos + 'px';
+            };
+        }
+
+        function applyBackground(bgUrl) {
+            const resultImage = document.getElementById('result-image');
+            const originalImageUrl = resultImage.getAttribute('src');
+
+            // Create a canvas to combine the images
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            const background = new Image();
+            const original = new Image();
+
+            background.src = bgUrl;
+            original.src = originalImageUrl;
+
+            background.onload = function () {
+                canvas.width = background.width;
+                canvas.height = background.height;
+                ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+
+                original.onload = function () {
+                    ctx.drawImage(original, 0, 0, canvas.width, canvas.height);
+                    const combinedImageUrl = canvas.toDataURL('image/png');
+                    resultImage.src = combinedImageUrl;
+
+                    // Update the download link with the new image
+                    const downloadLink = document.getElementById('download-link');
+                    downloadLink.href = combinedImageUrl;
+                };
+            };
+        }
+
+        function applyBackgroundColor(color) {
+            const resultImage = document.getElementById('result-image');
+            const originalImageUrl = resultImage.getAttribute('src');
+
+            // Create a canvas to combine the image with the background color
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            const original = new Image();
+            original.src = originalImageUrl;
+
+            original.onload = function () {
+                canvas.width = original.width;
+                canvas.height = original.height;
+
+                // Fill the background with the selected color
+                ctx.fillStyle = color;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw the original image on top
+                ctx.drawImage(original, 0, 0, canvas.width, canvas.height);
+
+                const combinedImageUrl = canvas.toDataURL('image/png');
+                resultImage.src = combinedImageUrl;
+
+                // Update the download link with the new image
+                const downloadLink = document.getElementById('download-link');
+                downloadLink.href = combinedImageUrl;
+            };
+        }
+    </script>
+</body>
+</html>

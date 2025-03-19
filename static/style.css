@@ -1,0 +1,51 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 50px;
+}
+
+h1, h2 {
+    color: #333;
+}
+
+#image-preview img, #result-image {
+    max-width: 100%;
+    height: auto;
+    margin: 20px 0;
+}
+
+form {
+    margin: 20px 0;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+a#download-link {
+    text-decoration: none;
+}
+
+a#download-link button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+
+a#download-link button:hover {
+    background-color: #218838;
+}
