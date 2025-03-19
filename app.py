@@ -1,5 +1,4 @@
-# this is simple bg remove image 
-
+import os
 from flask import Flask, render_template, request, send_file
 from rembg import remove
 from PIL import Image
@@ -30,4 +29,5 @@ def remove_bg():
     return send_file(img_io, mimetype='image/png')
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))  # Use Render's assigned port or default to 10000
+    app.run(host="0.0.0.0", port=port)  # Bind to 0.0.0.0 for external access
